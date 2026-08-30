@@ -1,5 +1,23 @@
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { FinanceProvider } from '@/context/finance-context';
 
 export default function RootLayout() {
-    return <Stack screenOptions={{ headerShown: false }} />;
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
+    return (
+        <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+            <FinanceProvider>
+                <Stack>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+                    <Stack.Screen name="scan" options={{ title: 'Scan transaction' }} />
+                </Stack>
+            </FinanceProvider>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+        </ThemeProvider>
+    );
 }
