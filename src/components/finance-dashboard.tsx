@@ -1,23 +1,18 @@
-import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { TransactionEntryModal } from '@/components/transaction-entry-modal';
 import { useFinances } from '@/context/finance-context';
 import { useTheme } from '@/hooks/use-theme';
-import { FinanceTransaction, TransactionInput } from '@/types/transactions';
+import { FinanceTransaction } from '@/types/transactions';
 
 export default function FinanceDashboard() {
     const theme = useTheme();
-    const { transactions, totals, addTransaction } = useFinances();
-    const [entryOpen, setEntryOpen] = useState(false);
+    const router = useRouter();
+    const { transactions, totals } = useFinances();
     const last = transactions.at(-1);
     const hours = totals.minutes / 60;
     const net = totals.income - totals.expenses;
     const hourlyNet = hours > 0 ? net / hours : 0;
-
-    function confirm(transaction: TransactionInput) {
-        addTransaction(transaction);
-    }
 
     return (
         <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.page}>
@@ -31,7 +26,7 @@ export default function FinanceDashboard() {
                 <Metric label="Hourly net revenue" value={`$${hourlyNet.toFixed(2)}`} theme={theme} />
             </View>
             <Text style={[styles.count, { color: theme.textSecondary }]}>{transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'} added</Text>
-            <Pressable onPress={() => setEntryOpen(true)} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
+            <Pressable onPress={() => router.push('/scan')} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
                 <Text style={styles.addText}>Add transaction</Text>
             </Pressable>
             {last ? <LastTransaction transaction={last} theme={theme} /> : null}
@@ -40,14 +35,17 @@ export default function FinanceDashboard() {
                 <SmallMetric label="Deliveries" value={String(totals.deliveries)} theme={theme} />
                 <SmallMetric label="Miles" value={totals.miles.toFixed(1)} theme={theme} />
             </View>
-            {entryOpen ? <TransactionEntryModal visible onClose={() => setEntryOpen(false)} onConfirm={confirm} /> : null}
         </ScrollView>
     );
 }
 
 function Metric({ label, value, color, theme }: any) { return <View style={[styles.metric, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.metricLabel, { color: color ?? theme.textSecondary }]}>{label}</Text><Text style={[styles.metricValue, { color: color ?? theme.text }]}>{value}</Text></View>; }
 function SmallMetric({ label, value, theme }: any) { return <View style={[styles.smallMetric, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.smallLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={[styles.smallValue, { color: theme.text }]}>{value}</Text></View>; }
-function LastTransaction({ transaction, theme }: { transaction: FinanceTransaction; theme: ReturnType<typeof useTheme> }) { return <View style={[styles.last, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.lastTitle, { color: theme.text }]}>Last transaction</Text><Text style={{ color: theme.textSecondary }}>Category: {transaction.category === 'gas' ? 'Gas' : 'DoorDash'}</Text><Text style={{ color: theme.textSecondary }}>Amount: ${transaction.amount.toFixed(2)}</Text>{transaction.category === 'gas' ? <Text style={{ color: theme.textSecondary }}>Gallons: {transaction.gallons ?? '-'}</Text> : <><Text style={{ color: theme.textSecondary }}>Hours: {((transaction.minutes ?? 0) / 60).toFixed(2)}</Text><Text style={{ color: theme.textSecondary }}>Deliveries: {transaction.deliveries ?? '-'}</Text><Text style={{ color: theme.textSecondary }}>Miles: {transaction.miles ?? '-'}</Text></>}</View>; }
+function LastTransaction({ transaction, theme }: { transaction: FinanceTransaction; theme: ReturnType<typeof useTheme> }) { return <View style={[styles.last, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.lastTitle, { color: theme.text }]}>Last transaction</Text><Text style={{ color: theme.textSecondary }}>Category: {formatCategory(transaction.category)}</Text><Text style={{ color: theme.textSecondary }}>Amount: ${transaction.amount.toFixed(2)}</Text>{transaction.category === 'gas' ? <Text style={{ color: theme.textSecondary }}>Gallons: {transaction.gallons ?? '-'}</Text> : transaction.category === 'doordash' ? <><Text style={{ color: theme.textSecondary }}>Hours: {((transaction.minutes ?? 0) / 60).toFixed(2)}</Text><Text style={{ color: theme.textSecondary }}>Deliveries: {transaction.deliveries ?? '-'}</Text><Text style={{ color: theme.textSecondary }}>Miles: {transaction.miles ?? '-'}</Text></> : null}</View>; }
+
+function formatCategory(category: FinanceTransaction['category']) {
+    return category === 'doordash' ? 'DoorDash' : category.charAt(0).toUpperCase() + category.slice(1);
+}
 
 const styles = StyleSheet.create({
     page: { flexGrow: 1, padding: 24 }, title: { fontSize: 32, fontWeight: '700', marginBottom: 8 }, subtitle: { fontSize: 16, lineHeight: 23, marginBottom: 28 },

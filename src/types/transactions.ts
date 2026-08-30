@@ -26,11 +26,18 @@ export type DoorDashTransactionDraft = TransactionBase<'income', 'doordash'> & {
     miles: number | null;
 };
 
-export type TransactionDraft = GasTransactionDraft | DoorDashTransactionDraft;
+export type ManualExpenseCategory = 'maintenance' | 'food' | 'tolls' | 'tax' | 'other';
+
+export type ManualTransactionDraft =
+    | TransactionBase<'expense', ManualExpenseCategory> & { amount: number | null }
+    | TransactionBase<'income', 'other'> & { amount: number | null };
+
+export type TransactionDraft = GasTransactionDraft | DoorDashTransactionDraft | ManualTransactionDraft;
 
 export type TransactionInput =
     | Omit<GasTransactionDraft, 'amount'> & { amount: number }
-    | Omit<DoorDashTransactionDraft, 'amount'> & { amount: number };
+    | Omit<DoorDashTransactionDraft, 'amount'> & { amount: number }
+    | Omit<ManualTransactionDraft, 'amount'> & { amount: number };
 
 export type FinanceTransaction = TransactionInput & {
     id: string;

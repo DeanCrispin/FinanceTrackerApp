@@ -39,6 +39,15 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
         }
 
         const nextAmount = optionalNumber(amount);
+        if (draft.category !== 'doordash') {
+            if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0) {
+                setError('Enter a valid positive amount.');
+                return;
+            }
+            onConfirm({ ...draft, amount: nextAmount });
+            return;
+        }
+
         const nextHours = optionalNumber(hours) ?? 0;
         const nextMinutes = optionalNumber(minutes) ?? 0;
         const nextDeliveries = optionalNumber(deliveries);
@@ -73,7 +82,7 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
                     <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
                     <Field label="Gallons" value={gallons} onChangeText={setGallons} style={inputStyle} />
                 </>
-            ) : (
+            ) : draft.category === 'doordash' ? (
                 <>
                     <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
                     <View style={styles.row}>
@@ -83,6 +92,8 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
                     <Field label="Deliveries" value={deliveries} onChangeText={setDeliveries} style={inputStyle} integer />
                     <Field label="Miles" value={miles} onChangeText={setMiles} style={inputStyle} />
                 </>
+            ) : (
+                <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
             )}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable onPress={confirm} style={styles.confirm}><Text style={styles.confirmText}>Confirm transaction</Text></Pressable>
