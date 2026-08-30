@@ -2,24 +2,23 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useState } from 'react';
 
 import { useTheme } from '@/hooks/use-theme';
-import { TransactionDraft } from '@/types/transactions';
+import { TransactionDraft, TransactionInput } from '@/types/transactions';
 
 type Props = {
     draft: TransactionDraft;
     onCancel: () => void;
-    onConfirm: (draft: TransactionDraft) => void;
+    onConfirm: (transaction: TransactionInput) => void;
 };
 
 export function ScanResults({ draft, onCancel, onConfirm }: Props) {
     const theme = useTheme();
-    const [expense, setExpense] = useState(draft.type === 'gas' ? draft.expense?.toFixed(2) ?? '' : '');
-    const [gallons, setGallons] = useState(draft.type === 'gas' ? draft.gallons?.toFixed(3) ?? '' : '');
-    const [revenue, setRevenue] = useState(draft.type === 'doordash' ? draft.revenue?.toFixed(2) ?? '' : '');
-    const initialMinutes = draft.type === 'doordash' ? draft.minutes : null;
+    const [amount, setAmount] = useState(draft.amount?.toFixed(2) ?? '');
+    const [gallons, setGallons] = useState(draft.category === 'gas' ? draft.gallons?.toFixed(3) ?? '' : '');
+    const initialMinutes = draft.category === 'doordash' ? draft.minutes : null;
     const [hours, setHours] = useState(initialMinutes === null ? '' : Math.floor(initialMinutes / 60).toString());
     const [minutes, setMinutes] = useState(initialMinutes === null ? '' : (initialMinutes % 60).toString());
-    const [deliveries, setDeliveries] = useState(draft.type === 'doordash' ? draft.deliveries?.toString() ?? '' : '');
-    const [miles, setMiles] = useState(draft.type === 'doordash' ? draft.miles?.toString() ?? '' : '');
+    const [deliveries, setDeliveries] = useState(draft.category === 'doordash' ? draft.deliveries?.toString() ?? '' : '');
+    const [miles, setMiles] = useState(draft.category === 'doordash' ? draft.miles?.toString() ?? '' : '');
     const [error, setError] = useState('');
 
     function optionalNumber(value: string) {
@@ -27,43 +26,36 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
     }
 
     function confirm() {
-        if (draft.type === 'gas') {
-            const nextExpense = optionalNumber(expense);
+        if (draft.category === 'gas') {
+            const nextAmount = optionalNumber(amount);
             const nextGallons = optionalNumber(gallons);
-            if ((nextExpense !== null && (!Number.isFinite(nextExpense) || nextExpense < 0)) ||
+            if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0 ||
                 (nextGallons !== null && (!Number.isFinite(nextGallons) || nextGallons < 0))) {
-                setError('Enter valid positive numbers for expense and gallons.');
+                setError('Enter a valid positive amount and optional gallons.');
                 return;
             }
-            if (nextExpense === null && nextGallons === null) {
-                setError('Enter an expense, gallons, or both.');
-                return;
-            }
-            onConfirm({ type: 'gas', expense: nextExpense, gallons: nextGallons });
+            onConfirm({ type: 'expense', category: 'gas', amount: nextAmount, gallons: nextGallons });
             return;
         }
 
-        const nextRevenue = optionalNumber(revenue);
+        const nextAmount = optionalNumber(amount);
         const nextHours = optionalNumber(hours) ?? 0;
         const nextMinutes = optionalNumber(minutes) ?? 0;
         const nextDeliveries = optionalNumber(deliveries);
         const nextMiles = optionalNumber(miles);
-        if ((nextRevenue !== null && (!Number.isFinite(nextRevenue) || nextRevenue < 0)) ||
+        if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0 ||
             !Number.isInteger(nextHours) || nextHours < 0 ||
             !Number.isInteger(nextMinutes) || nextMinutes < 0 || nextMinutes > 59 ||
             (nextDeliveries !== null && (!Number.isInteger(nextDeliveries) || nextDeliveries < 0)) ||
             (nextMiles !== null && (!Number.isFinite(nextMiles) || nextMiles < 0))) {
-            setError('Use positive values, whole hours and deliveries, and minutes from 0 to 59.');
+            setError('Enter a valid positive amount, whole hours and deliveries, and minutes from 0 to 59.');
             return;
         }
         const totalMinutes = nextHours * 60 + nextMinutes;
-        if (nextRevenue === null && totalMinutes === 0 && nextDeliveries === null && nextMiles === null) {
-            setError('Enter revenue, time, deliveries, or miles.');
-            return;
-        }
         onConfirm({
-            type: 'doordash',
-            revenue: nextRevenue,
+            type: 'income',
+            category: 'doordash',
+            amount: nextAmount,
             minutes: totalMinutes,
             deliveries: nextDeliveries,
             miles: nextMiles,
@@ -76,14 +68,14 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
         <View>
             <Text style={[styles.title, { color: theme.text }]}>Does this look correct?</Text>
             <Text style={[styles.hint, { color: theme.textSecondary }]}>Tap any field to correct it before confirming.</Text>
-            {draft.type === 'gas' ? (
+            {draft.category === 'gas' ? (
                 <>
-                    <Field label="Expense" value={expense} onChangeText={setExpense} prefix="$" style={inputStyle} />
+                    <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
                     <Field label="Gallons" value={gallons} onChangeText={setGallons} style={inputStyle} />
                 </>
             ) : (
                 <>
-                    <Field label="Revenue" value={revenue} onChangeText={setRevenue} prefix="$" style={inputStyle} />
+                    <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
                     <View style={styles.row}>
                         <View style={styles.flex}><Field label="Hours" value={hours} onChangeText={setHours} style={inputStyle} integer /></View>
                         <View style={styles.flex}><Field label="Minutes" value={minutes} onChangeText={setMinutes} style={inputStyle} integer /></View>

@@ -7,7 +7,9 @@ import { ScanResults } from '@/components/ScanResults';
 import { useFinances } from '@/context/finance-context';
 import { useTheme } from '@/hooks/use-theme';
 import { scanDoorDashImages, scanGasImages } from '@/services/transaction-scanner';
-import { TransactionDraft } from '@/types/transactions';
+import { TransactionDraft, TransactionInput } from '@/types/transactions';
+
+type ScannableCategory = TransactionDraft['category'];
 
 export default function TransactionScanScreen() {
     const theme = useTheme();
@@ -17,12 +19,12 @@ export default function TransactionScanScreen() {
     const [reviewKey, setReviewKey] = useState(0);
     const [scanning, setScanning] = useState(false);
 
-    async function pick(type: 'gas' | 'doordash') {
+    async function pick(category: ScannableCategory) {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'], allowsEditing: false, allowsMultipleSelection: true, quality: 1,
         });
         if (result.canceled) return;
-        await process(type, result.assets.map((asset) => asset.uri));
+        await process(category, result.assets.map((asset) => asset.uri));
     }
 
     async function takeGasPhoto() {
@@ -35,10 +37,10 @@ export default function TransactionScanScreen() {
         if (!result.canceled) await process('gas', [result.assets[0].uri]);
     }
 
-    async function process(type: 'gas' | 'doordash', uris: string[]) {
+    async function process(category: ScannableCategory, uris: string[]) {
         setScanning(true);
         try {
-            const draft = type === 'gas' ? await scanGasImages(uris) : await scanDoorDashImages(uris);
+            const draft = category === 'gas' ? await scanGasImages(uris) : await scanDoorDashImages(uris);
             setPending(draft);
             setReviewKey((value) => value + 1);
         } catch (error) {
@@ -49,8 +51,8 @@ export default function TransactionScanScreen() {
         }
     }
 
-    function confirm(draft: TransactionDraft) {
-        addTransaction(draft);
+    function confirm(transaction: TransactionInput) {
+        addTransaction(transaction);
         router.back();
     }
 

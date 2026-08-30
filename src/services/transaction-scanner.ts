@@ -24,8 +24,9 @@ export async function scanGasImages(uris: string[]): Promise<GasTransactionDraft
     }
 
     return {
-        type: 'gas',
-        expense: foundExpense ? expense : null,
+        type: 'expense',
+        category: 'gas',
+        amount: foundExpense ? expense : null,
         gallons: foundGallons ? gallons : null,
     };
 }
@@ -63,8 +64,9 @@ export async function scanDoorDashImages(uris: string[]): Promise<DoorDashTransa
     }
 
     return {
-        type: 'doordash',
-        revenue: foundRevenue ? revenue : null,
+        type: 'income',
+        category: 'doordash',
+        amount: foundRevenue ? revenue : null,
         minutes: foundTime ? minutes : null,
         deliveries: foundDeliveries ? deliveries : null,
         miles: foundMiles ? miles : null,
