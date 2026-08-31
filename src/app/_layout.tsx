@@ -15,6 +15,7 @@ export default function RootLayout() {
                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="settings" options={{ title: 'Settings' }} />
                     <Stack.Screen name="scan" options={{ title: 'Scan transaction' }} />
+                    <Stack.Screen name="transaction/[id]" options={{ title: 'Edit transaction' }} />
                 </Stack>
             </FinanceProvider>
             <StatusBar style={isDark ? 'light' : 'dark'} />

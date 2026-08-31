@@ -71,6 +71,20 @@ export default function TabLayout() {
                     ),
                 }}
             />
+
+            <Tabs.Screen
+                name="history"
+                options={{
+                    title: 'History',
+                    tabBarIcon: ({ color, size }) => (
+                        <SymbolView
+                            name={{ ios: 'clock.arrow.circlepath', android: 'history' }}
+                            size={size}
+                            tintColor={color}
+                        />
+                    ),
+                }}
+            />
         </Tabs>
     );
 }

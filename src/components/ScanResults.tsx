@@ -8,17 +8,21 @@ type Props = {
     draft: TransactionDraft;
     onCancel: () => void;
     onConfirm: (transaction: TransactionInput) => void;
+    title?: string;
+    confirmLabel?: string;
 };
 
-export function ScanResults({ draft, onCancel, onConfirm }: Props) {
+export function ScanResults({ draft, onCancel, onConfirm, title = 'Does this look correct?', confirmLabel = 'Confirm transaction' }: Props) {
     const theme = useTheme();
     const [amount, setAmount] = useState(draft.amount?.toFixed(2) ?? '');
     const [gallons, setGallons] = useState(draft.category === 'gas' ? draft.gallons?.toFixed(3) ?? '' : '');
-    const initialMinutes = draft.category === 'doordash' ? draft.minutes : null;
+    const isDeliveryIncome = draft.category === 'doordash' || draft.category === 'ubereats';
+    const initialMinutes = isDeliveryIncome ? draft.minutes : null;
     const [hours, setHours] = useState(initialMinutes === null ? '' : Math.floor(initialMinutes / 60).toString());
     const [minutes, setMinutes] = useState(initialMinutes === null ? '' : (initialMinutes % 60).toString());
-    const [deliveries, setDeliveries] = useState(draft.category === 'doordash' ? draft.deliveries?.toString() ?? '' : '');
+    const [deliveries, setDeliveries] = useState(isDeliveryIncome ? draft.deliveries?.toString() ?? '' : '');
     const [miles, setMiles] = useState(draft.category === 'doordash' ? draft.miles?.toString() ?? '' : '');
+    const [isBusinessExpense, setIsBusinessExpense] = useState(draft.type === 'expense' && draft.isBusinessExpense);
     const [error, setError] = useState('');
 
     function optionalNumber(value: string) {
@@ -34,24 +38,28 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
                 setError('Enter a valid positive amount and optional gallons.');
                 return;
             }
-            onConfirm({ type: 'expense', category: 'gas', amount: nextAmount, gallons: nextGallons });
+            onConfirm({ type: 'expense', category: 'gas', amount: nextAmount, gallons: nextGallons, isBusinessExpense });
             return;
         }
 
         const nextAmount = optionalNumber(amount);
-        if (draft.category !== 'doordash') {
+        if (!isDeliveryIncome) {
             if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0) {
                 setError('Enter a valid positive amount.');
                 return;
             }
-            onConfirm({ ...draft, amount: nextAmount });
+            if (draft.type === 'expense') {
+                onConfirm({ ...draft, amount: nextAmount, isBusinessExpense });
+            } else {
+                onConfirm({ ...draft, amount: nextAmount });
+            }
             return;
         }
 
         const nextHours = optionalNumber(hours) ?? 0;
         const nextMinutes = optionalNumber(minutes) ?? 0;
         const nextDeliveries = optionalNumber(deliveries);
-        const nextMiles = optionalNumber(miles);
+        const nextMiles = draft.category === 'doordash' ? optionalNumber(miles) : null;
         if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0 ||
             !Number.isInteger(nextHours) || nextHours < 0 ||
             !Number.isInteger(nextMinutes) || nextMinutes < 0 || nextMinutes > 59 ||
@@ -61,42 +69,60 @@ export function ScanResults({ draft, onCancel, onConfirm }: Props) {
             return;
         }
         const totalMinutes = nextHours * 60 + nextMinutes;
-        onConfirm({
-            type: 'income',
-            category: 'doordash',
-            amount: nextAmount,
-            minutes: totalMinutes,
-            deliveries: nextDeliveries,
-            miles: nextMiles,
-        });
+        if (draft.category === 'doordash') {
+            onConfirm({
+                type: 'income', category: 'doordash', amount: nextAmount,
+                minutes: totalMinutes, deliveries: nextDeliveries, miles: nextMiles,
+            });
+        } else {
+            onConfirm({
+                type: 'income', category: 'ubereats', amount: nextAmount,
+                minutes: totalMinutes, deliveries: nextDeliveries,
+            });
+        }
     }
 
     const inputStyle = [styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }];
 
     return (
         <View>
-            <Text style={[styles.title, { color: theme.text }]}>Does this look correct?</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
             <Text style={[styles.hint, { color: theme.textSecondary }]}>Tap any field to correct it before confirming.</Text>
             {draft.category === 'gas' ? (
                 <>
                     <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
                     <Field label="Gallons" value={gallons} onChangeText={setGallons} style={inputStyle} />
                 </>
-            ) : draft.category === 'doordash' ? (
+            ) : isDeliveryIncome ? (
                 <>
                     <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
                     <View style={styles.row}>
                         <View style={styles.flex}><Field label="Hours" value={hours} onChangeText={setHours} style={inputStyle} integer /></View>
                         <View style={styles.flex}><Field label="Minutes" value={minutes} onChangeText={setMinutes} style={inputStyle} integer /></View>
                     </View>
-                    <Field label="Deliveries" value={deliveries} onChangeText={setDeliveries} style={inputStyle} integer />
-                    <Field label="Miles" value={miles} onChangeText={setMiles} style={inputStyle} />
+                    <Field label={draft.category === 'ubereats' ? 'Trips' : 'Deliveries'} value={deliveries} onChangeText={setDeliveries} style={inputStyle} integer />
+                    {draft.category === 'doordash' ? <Field label="Miles" value={miles} onChangeText={setMiles} style={inputStyle} /> : null}
                 </>
             ) : (
                 <Field label="Amount" value={amount} onChangeText={setAmount} prefix="$" style={inputStyle} />
             )}
+            {draft.type === 'expense' ? (
+                <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isBusinessExpense }}
+                    onPress={() => setIsBusinessExpense((value) => !value)}
+                    style={styles.checkboxRow}>
+                    <View style={[styles.checkbox, { borderColor: theme.textSecondary }, isBusinessExpense && styles.checkboxChecked]}>
+                        {isBusinessExpense ? <Text style={styles.checkmark}>✓</Text> : null}
+                    </View>
+                    <View style={styles.flex}>
+                        <Text style={[styles.checkboxLabel, { color: theme.text }]}>Business expense</Text>
+                        <Text style={[styles.checkboxHint, { color: theme.textSecondary }]}>Subtract this expense when calculating hourly net revenue.</Text>
+                    </View>
+                </Pressable>
+            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Pressable onPress={confirm} style={styles.confirm}><Text style={styles.confirmText}>Confirm transaction</Text></Pressable>
+            <Pressable onPress={confirm} style={styles.confirm}><Text style={styles.confirmText}>{confirmLabel}</Text></Pressable>
             <Pressable onPress={onCancel} style={styles.cancel}><Text style={[styles.cancelText, { color: theme.textSecondary }]}>Cancel</Text></Pressable>
         </View>
     );
@@ -148,4 +174,10 @@ const styles = StyleSheet.create({
     confirmText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
     cancel: { alignItems: 'center', padding: 12 },
     cancelText: { fontSize: 16, fontWeight: '600' },
+    checkboxRow: { alignItems: 'center', flexDirection: 'row', gap: 12, marginTop: 18 },
+    checkbox: { alignItems: 'center', borderRadius: 5, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
+    checkboxChecked: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
+    checkmark: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+    checkboxLabel: { fontSize: 16, fontWeight: '600' },
+    checkboxHint: { fontSize: 13, lineHeight: 18, marginTop: 2 },
 });

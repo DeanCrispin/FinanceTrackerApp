@@ -12,7 +12,7 @@ export default function FinanceDashboard() {
     const last = transactions.at(-1);
     const hours = totals.minutes / 60;
     const net = totals.income - totals.expenses;
-    const hourlyNet = hours > 0 ? net / hours : 0;
+    const hourlyNet = hours > 0 ? (totals.income - totals.businessExpenses) / hours : 0;
 
     return (
         <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.page}>
@@ -41,10 +41,12 @@ export default function FinanceDashboard() {
 
 function Metric({ label, value, color, theme }: any) { return <View style={[styles.metric, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.metricLabel, { color: color ?? theme.textSecondary }]}>{label}</Text><Text style={[styles.metricValue, { color: color ?? theme.text }]}>{value}</Text></View>; }
 function SmallMetric({ label, value, theme }: any) { return <View style={[styles.smallMetric, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.smallLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={[styles.smallValue, { color: theme.text }]}>{value}</Text></View>; }
-function LastTransaction({ transaction, theme }: { transaction: FinanceTransaction; theme: ReturnType<typeof useTheme> }) { return <View style={[styles.last, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.lastTitle, { color: theme.text }]}>Last transaction</Text><Text style={{ color: theme.textSecondary }}>Category: {formatCategory(transaction.category)}</Text><Text style={{ color: theme.textSecondary }}>Amount: ${transaction.amount.toFixed(2)}</Text>{transaction.category === 'gas' ? <Text style={{ color: theme.textSecondary }}>Gallons: {transaction.gallons ?? '-'}</Text> : transaction.category === 'doordash' ? <><Text style={{ color: theme.textSecondary }}>Hours: {((transaction.minutes ?? 0) / 60).toFixed(2)}</Text><Text style={{ color: theme.textSecondary }}>Deliveries: {transaction.deliveries ?? '-'}</Text><Text style={{ color: theme.textSecondary }}>Miles: {transaction.miles ?? '-'}</Text></> : null}</View>; }
+function LastTransaction({ transaction, theme }: { transaction: FinanceTransaction; theme: ReturnType<typeof useTheme> }) { return <View style={[styles.last, { backgroundColor: theme.backgroundElement }]}><Text style={[styles.lastTitle, { color: theme.text }]}>Last transaction</Text><Text style={{ color: theme.textSecondary }}>Category: {formatCategory(transaction.category)}</Text><Text style={{ color: theme.textSecondary }}>Amount: ${transaction.amount.toFixed(2)}</Text>{transaction.category === 'gas' ? <Text style={{ color: theme.textSecondary }}>Gallons: {transaction.gallons ?? '-'}</Text> : transaction.category === 'doordash' || transaction.category === 'ubereats' ? <><Text style={{ color: theme.textSecondary }}>Hours: {((transaction.minutes ?? 0) / 60).toFixed(2)}</Text><Text style={{ color: theme.textSecondary }}>{transaction.category === 'ubereats' ? 'Trips' : 'Deliveries'}: {transaction.deliveries ?? '-'}</Text>{transaction.category === 'doordash' ? <Text style={{ color: theme.textSecondary }}>Miles: {transaction.miles ?? '-'}</Text> : null}</> : null}</View>; }
 
 function formatCategory(category: FinanceTransaction['category']) {
-    return category === 'doordash' ? 'DoorDash' : category.charAt(0).toUpperCase() + category.slice(1);
+    if (category === 'doordash') return 'DoorDash';
+    if (category === 'ubereats') return 'Uber';
+    return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
 const styles = StyleSheet.create({

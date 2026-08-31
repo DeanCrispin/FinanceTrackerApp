@@ -4,6 +4,7 @@ import { FinanceTransaction, TransactionInput } from '@/types/transactions';
 
 type FinanceTotals = {
     expenses: number;
+    businessExpenses: number;
     income: number;
     minutes: number;
     gallons: number;
@@ -15,6 +16,8 @@ type FinanceContextValue = {
     transactions: FinanceTransaction[];
     totals: FinanceTotals;
     addTransaction: (transaction: TransactionInput) => void;
+    updateTransaction: (id: string, transaction: TransactionInput) => void;
+    deleteTransaction: (id: string) => void;
 };
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -27,20 +30,25 @@ export function FinanceProvider({ children }: PropsWithChildren) {
             (sum, transaction) => {
                 if (transaction.type === 'expense') {
                     sum.expenses += transaction.amount;
+                    if (transaction.isBusinessExpense) {
+                        sum.businessExpenses += transaction.amount;
+                    }
                 } else {
                     sum.income += transaction.amount;
                 }
 
                 if (transaction.category === 'gas') {
                     sum.gallons += transaction.gallons ?? 0;
-                } else if (transaction.category === 'doordash') {
+                } else if (transaction.category === 'doordash' || transaction.category === 'ubereats') {
                     sum.minutes += transaction.minutes ?? 0;
                     sum.deliveries += transaction.deliveries ?? 0;
-                    sum.miles += transaction.miles ?? 0;
+                    if (transaction.category === 'doordash') {
+                        sum.miles += transaction.miles ?? 0;
+                    }
                 }
                 return sum;
             },
-            { expenses: 0, income: 0, minutes: 0, gallons: 0, deliveries: 0, miles: 0 }
+            { expenses: 0, businessExpenses: 0, income: 0, minutes: 0, gallons: 0, deliveries: 0, miles: 0 }
         );
 
         return {
@@ -51,6 +59,14 @@ export function FinanceProvider({ children }: PropsWithChildren) {
                     ...current,
                     { ...draft, id: `${Date.now()}-${current.length}`, createdAt: new Date().toISOString() },
                 ]),
+            updateTransaction: (id, draft) =>
+                setTransactions((current) => current.map((transaction) =>
+                    transaction.id === id
+                        ? { ...draft, id: transaction.id, createdAt: transaction.createdAt }
+                        : transaction
+                )),
+            deleteTransaction: (id) =>
+                setTransactions((current) => current.filter((transaction) => transaction.id !== id)),
         };
     }, [transactions]);
 
