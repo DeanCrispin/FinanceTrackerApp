@@ -1,5 +1,20 @@
-import { createContext, PropsWithChildren, useContext, useMemo, useState } from 'react';
+import { useSQLiteContext } from 'expo-sqlite';
+import {
+    createContext,
+    PropsWithChildren,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 
+import {
+    addTransaction as insertTransaction,
+    deleteTransaction as deleteStoredTransaction,
+    getTransactions,
+    updateTransaction as updateStoredTransaction,
+} from '@/database/transactions';
 import { FinanceTransaction, TransactionInput } from '@/types/transactions';
 
 type FinanceTotals = {
@@ -15,15 +30,67 @@ type FinanceTotals = {
 type FinanceContextValue = {
     transactions: FinanceTransaction[];
     totals: FinanceTotals;
-    addTransaction: (transaction: TransactionInput) => void;
-    updateTransaction: (id: string, transaction: TransactionInput) => void;
-    deleteTransaction: (id: string) => void;
+    isLoading: boolean;
+    error: Error | null;
+    addTransaction: (transaction: TransactionInput) => Promise<void>;
+    updateTransaction: (id: string, transaction: TransactionInput) => Promise<void>;
+    deleteTransaction: (id: string) => Promise<void>;
 };
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
 
 export function FinanceProvider({ children }: PropsWithChildren) {
+    const db = useSQLiteContext();
     const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadTransactions() {
+            try {
+                const savedTransactions = await getTransactions(db);
+                if (!cancelled) {
+                    setTransactions(savedTransactions);
+                    setError(null);
+                }
+            } catch (cause) {
+                if (!cancelled) {
+                    setError(toError(cause, 'Failed to load transactions'));
+                }
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        }
+
+        void loadTransactions();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [db]);
+
+    const addTransaction = useCallback(async (draft: TransactionInput) => {
+        const savedTransaction = await insertTransaction(db, draft);
+        setTransactions((current) => [...current, savedTransaction]);
+    }, [db]);
+
+    const updateTransaction = useCallback(async (id: string, draft: TransactionInput) => {
+        await updateStoredTransaction(db, id, draft);
+        setTransactions((current) => current.map((transaction) =>
+            transaction.id === id
+                ? { ...draft, id: transaction.id, createdAt: transaction.createdAt }
+                : transaction
+        ));
+    }, [db]);
+
+    const deleteTransaction = useCallback(async (id: string) => {
+        await deleteStoredTransaction(db, id);
+        setTransactions((current) =>
+            current.filter((transaction) => transaction.id !== id)
+        );
+    }, [db]);
 
     const value = useMemo<FinanceContextValue>(() => {
         const totals = transactions.reduce<FinanceTotals>(
@@ -54,21 +121,13 @@ export function FinanceProvider({ children }: PropsWithChildren) {
         return {
             transactions,
             totals,
-            addTransaction: (draft) =>
-                setTransactions((current) => [
-                    ...current,
-                    { ...draft, id: `${Date.now()}-${current.length}`, createdAt: new Date().toISOString() },
-                ]),
-            updateTransaction: (id, draft) =>
-                setTransactions((current) => current.map((transaction) =>
-                    transaction.id === id
-                        ? { ...draft, id: transaction.id, createdAt: transaction.createdAt }
-                        : transaction
-                )),
-            deleteTransaction: (id) =>
-                setTransactions((current) => current.filter((transaction) => transaction.id !== id)),
+            isLoading,
+            error,
+            addTransaction,
+            updateTransaction,
+            deleteTransaction,
         };
-    }, [transactions]);
+    }, [addTransaction, deleteTransaction, error, isLoading, transactions, updateTransaction]);
 
     return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }
@@ -77,4 +136,8 @@ export function useFinances() {
     const value = useContext(FinanceContext);
     if (!value) throw new Error('useFinances must be used inside FinanceProvider');
     return value;
+}
+
+function toError(cause: unknown, fallbackMessage: string): Error {
+    return cause instanceof Error ? cause : new Error(fallbackMessage);
 }

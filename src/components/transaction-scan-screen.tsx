@@ -88,6 +88,7 @@ export default function TransactionScanScreen() {
     const [pending, setPending] = useState<TransactionDraft | null>(null);
     const [reviewKey, setReviewKey] = useState(0);
     const [scanning, setScanning] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [showPhotoGuide, setShowPhotoGuide] = useState(false);
 
     async function pick(scanCategory: TransactionCategory) {
@@ -173,18 +174,28 @@ export default function TransactionScanScreen() {
                 'A previous transaction has the same category and values. Do you still want to add it?',
                 [
                     { text: 'Go back', style: 'cancel' },
-                    { text: 'Add anyway', style: 'destructive', onPress: () => save(transaction) },
+                    { text: 'Add anyway', style: 'destructive', onPress: () => void save(transaction) },
                 ]
             );
             return;
         }
 
-        save(transaction);
+        void save(transaction);
     }
 
-    function save(transaction: TransactionInput) {
-        addTransaction(transaction);
-        router.back();
+    async function save(transaction: TransactionInput) {
+        if (saving) return;
+
+        setSaving(true);
+        try {
+            await addTransaction(transaction);
+            router.back();
+        } catch (error) {
+            console.error('Save failed:', error);
+            Alert.alert('Save failed', 'The transaction could not be saved. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     }
 
     function goBack() {
@@ -194,7 +205,7 @@ export default function TransactionScanScreen() {
     }
 
     if (pending) {
-        return <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.page}><ScanResults key={reviewKey} draft={pending} onCancel={() => setPending(null)} onConfirm={confirm} /></ScrollView>;
+        return <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.page}><ScanResults key={reviewKey} draft={pending} onCancel={() => setPending(null)} onConfirm={confirm} />{saving ? <View style={styles.loading}><ActivityIndicator /><Text style={{ color: theme.textSecondary }}>Saving transaction...</Text></View> : null}</ScrollView>;
     }
 
     const photoGuide = category && isIncomeImageCategory(category) ? photoGuides[category] : null;

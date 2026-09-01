@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+
 import { useTheme } from '@/hooks/use-theme';
 
 export default function TabLayout() {

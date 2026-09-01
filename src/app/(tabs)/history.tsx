@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Href, useRouter } from 'expo-router';
 
 import { useFinances } from '@/context/finance-context';
@@ -25,7 +25,7 @@ const categoryOptions: { value: CategoryFilter; label: string }[] = [
 export default function HistoryScreen() {
     const theme = useTheme();
     const router = useRouter();
-    const { transactions } = useFinances();
+    const { transactions, isLoading, error } = useFinances();
     const [showSort, setShowSort] = useState(false);
     const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
     const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -54,7 +54,17 @@ export default function HistoryScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.list}>
-                {visibleTransactions.length === 0 ? (
+                {isLoading ? (
+                    <View style={styles.status}>
+                        <ActivityIndicator />
+                        <Text style={{ color: theme.textSecondary }}>Loading transactions...</Text>
+                    </View>
+                ) : error ? (
+                    <View style={[styles.empty, { backgroundColor: theme.backgroundElement }]}>
+                        <Text style={[styles.emptyTitle, { color: theme.text }]}>Could not load transactions</Text>
+                        <Text style={{ color: theme.textSecondary }}>{error.message}</Text>
+                    </View>
+                ) : visibleTransactions.length === 0 ? (
                     <View style={[styles.empty, { backgroundColor: theme.backgroundElement }]}>
                         <Text style={[styles.emptyTitle, { color: theme.text }]}>No transactions found</Text>
                         <Text style={{ color: theme.textSecondary }}>Add a transaction or change the filters.</Text>
@@ -136,6 +146,7 @@ const styles = StyleSheet.create({
     sortButton: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
     sortButtonText: { color: '#FFF', fontWeight: '700' },
     list: { gap: 10, paddingBottom: 28, paddingHorizontal: 20 },
+    status: { alignItems: 'center', gap: 10, padding: 28 },
     row: { alignItems: 'center', borderRadius: 13, flexDirection: 'row', justifyContent: 'space-between', padding: 16 },
     rowText: { flex: 1, marginRight: 12 },
     category: { fontSize: 17, fontWeight: '700' },
