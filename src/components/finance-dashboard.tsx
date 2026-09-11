@@ -12,7 +12,7 @@ export default function FinanceDashboard() {
     const last = transactions.at(-1);
     const hours = totals.minutes / 60;
     const net = totals.income - totals.expenses;
-    const hourlyNet = hours > 0 ? (totals.income - totals.businessExpenses) / hours : 0;
+    const hourlyNet = hours > 0 ? (totals.deliveryIncome - totals.businessExpenses) / hours : 0;
 
     if (isLoading) {
         return (
@@ -38,10 +38,10 @@ export default function FinanceDashboard() {
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Add expenses and income to build your running totals.</Text>
             <View style={styles.primaryGrid}>
                 <Metric label="Total revenue" value={`$${totals.income.toFixed(2)}`} color="#16A34A" theme={theme} />
-                <Metric label="Total hours" value={hours.toFixed(2)} theme={theme} />
+                <Metric label="Delivery hours" value={hours.toFixed(2)} theme={theme} />
                 <Metric label="Total expenses" value={`$${totals.expenses.toFixed(2)}`} color="#DC2626" theme={theme} />
                 <Metric label="Net revenue" value={`$${net.toFixed(2)}`} theme={theme} />
-                <Metric label="Hourly net revenue" value={`$${hourlyNet.toFixed(2)}`} theme={theme} />
+                <Metric label="Hourly delivery net revenue" value={`$${hourlyNet.toFixed(2)}`} theme={theme} />
             </View>
             <Text style={[styles.count, { color: theme.textSecondary }]}>{transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'} added</Text>
             <Pressable onPress={() => router.push('/scan')} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>

@@ -33,7 +33,7 @@ export function ScanResults({ draft, onCancel, onConfirm, title = 'Does this loo
         if (draft.category === 'gas') {
             const nextAmount = optionalNumber(amount);
             const nextGallons = optionalNumber(gallons);
-            if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0 ||
+            if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount <= 0 ||
                 (nextGallons !== null && (!Number.isFinite(nextGallons) || nextGallons < 0))) {
                 setError('Enter a valid positive amount and optional gallons.');
                 return;
@@ -44,7 +44,7 @@ export function ScanResults({ draft, onCancel, onConfirm, title = 'Does this loo
 
         const nextAmount = optionalNumber(amount);
         if (!isDeliveryIncome) {
-            if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0) {
+            if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount <= 0) {
                 setError('Enter a valid positive amount.');
                 return;
             }
@@ -60,7 +60,7 @@ export function ScanResults({ draft, onCancel, onConfirm, title = 'Does this loo
         const nextMinutes = optionalNumber(minutes) ?? 0;
         const nextDeliveries = optionalNumber(deliveries);
         const nextMiles = draft.category === 'doordash' ? optionalNumber(miles) : null;
-        if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount < 0 ||
+        if (nextAmount === null || !Number.isFinite(nextAmount) || nextAmount <= 0 ||
             !Number.isInteger(nextHours) || nextHours < 0 ||
             !Number.isInteger(nextMinutes) || nextMinutes < 0 || nextMinutes > 59 ||
             (nextDeliveries !== null && (!Number.isInteger(nextDeliveries) || nextDeliveries < 0)) ||
@@ -117,7 +117,7 @@ export function ScanResults({ draft, onCancel, onConfirm, title = 'Does this loo
                     </View>
                     <View style={styles.flex}>
                         <Text style={[styles.checkboxLabel, { color: theme.text }]}>Business expense</Text>
-                        <Text style={[styles.checkboxHint, { color: theme.textSecondary }]}>Subtract this expense when calculating hourly net revenue.</Text>
+                        <Text style={[styles.checkboxHint, { color: theme.textSecondary }]}>Mark delivery-work expenses to subtract them from hourly delivery net revenue.</Text>
                     </View>
                 </Pressable>
             ) : null}

@@ -21,6 +21,7 @@ type FinanceTotals = {
     expenses: number;
     businessExpenses: number;
     income: number;
+    deliveryIncome: number;
     minutes: number;
     gallons: number;
     deliveries: number;
@@ -107,6 +108,7 @@ export function FinanceProvider({ children }: PropsWithChildren) {
                 if (transaction.category === 'gas') {
                     sum.gallons += transaction.gallons ?? 0;
                 } else if (transaction.category === 'doordash' || transaction.category === 'ubereats') {
+                    sum.deliveryIncome += transaction.amount;
                     sum.minutes += transaction.minutes ?? 0;
                     sum.deliveries += transaction.deliveries ?? 0;
                     if (transaction.category === 'doordash') {
@@ -115,7 +117,7 @@ export function FinanceProvider({ children }: PropsWithChildren) {
                 }
                 return sum;
             },
-            { expenses: 0, businessExpenses: 0, income: 0, minutes: 0, gallons: 0, deliveries: 0, miles: 0 }
+            { expenses: 0, businessExpenses: 0, income: 0, deliveryIncome: 0, minutes: 0, gallons: 0, deliveries: 0, miles: 0 }
         );
 
         return {

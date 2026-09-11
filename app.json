@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FinanceTrackerApp",
+    "name": "Finance Tracker",
     "slug": "FinanceTrackerApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.FinanceTrackerApp"
+      "package": "com.deancrispin.financetracker"
     },
     "web": {
       "output": "static",
